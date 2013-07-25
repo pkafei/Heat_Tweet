@@ -47,7 +47,7 @@ def login():
 @app.route('/logout')
 def logout():
     session.pop('twitter_oauth', None)
-    return redirect(url_for('index'))
+    return redirect(url_for('base'))
 
 
 @app.route('/oauthorized')
