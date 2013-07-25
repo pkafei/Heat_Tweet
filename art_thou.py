@@ -63,7 +63,7 @@ def oauthorized(resp):
 @app.route('/')
 def index():
     """ Just a generic index page to show."""
-    return render_template('base.html')
+    return render_template('home.html')
 
 
 if __name__ == '__main__':
