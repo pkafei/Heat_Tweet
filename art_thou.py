@@ -11,12 +11,12 @@ oauth = OAuth(app)
 
 twitter = oauth.remote_app(
     'twitter',
-    consumer_key='OwdDOkUp4aI751Xnm7fOg  ',
-    consumer_secret='dfPYN1ZeKEm36prWGYCVqj5RFkGZgu3WLXXwuIIKmUQ',
-    base_url= ' ',
-    request_token_url='https://api.twitter.com/oauth/request_token',
-    access_token_url='https://api.twitter.com/oauth/access_token',
-    authorize_url='https://api.twitter.com/oauth/authenticate',
+    consumer_key='',
+    consumer_secret='',
+    base_url= '',
+    request_token_url='',
+    access_token_url='',
+    authorize_url='',
 )
 
 #@app.route('/')
