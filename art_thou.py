@@ -1,70 +1,81 @@
-from flask import Flask, render_template, json, request
-from flask_oauthlib.client import OAuth
-from flask import g, session, request, url_for, flash
-from flask_oauthlib.client import OAuth
+#!/bin/env python
+# encoding: utf-8
+
+"""
+Webservice prototype for exposing cell data via
+HTTP and JSON/JSONP
+"""
+
+DB = 'tstream'
+CELLS_COLLECTION = 'tweet'
+
+import json
+import time
+import math
+import redis
+import threading
+import signal
+import sys
+from flask import Flask
+from flask import request
+from flask import abort
+from flask import url_for
+from flask import make_response
+from flask import Connection
+from bson import json_util
+from threading import Thread
+
+red = redis.StrictRedis()
+
+def signal_handler(signal, frame):
+    print 'Your pressed Ctrl+C!'
+    sys.exit(0)
+
+def tail_mongo_thread():
+    print "beginning to tail..."
+    db = Connection().tstream
+    coll = db.tweets_tail
+    cursor = coll.find({"coordinates.type" : "Point"}, {"coordinates" :1},
+        tailable=True, timeout=False)
+    ci=0
+    while cursor.alive:
+        try:
+            doc = cursor.next()
+            ci += 1
+            red.publish('chat', u'%s'
+                % json.dumps(doc,default=json_util.default))
+        except StopIteration:
+            pass
+
+
+def event_stream():
+    pubsub = red.pubsub()
+    pubsub = subscribe('chat')
+    i = 0
+    for message in pubsub.listen():
+        i += 1
+        print i
+        yield 'data: %s\n\n' % message['data']
 
 app = Flask(__name__)
-app.debug = True
-app.secret_key = 'Write Something!'
-
-oauth = OAuth(app)
-
-twitter = oauth.remote_app(
-    'twitter',
-    consumer_key='',
-    consumer_secret='',
-    base_url= '',
-    request_token_url='',
-    access_token_url='',
-    authorize_url='',
-)
-
-#@app.route('/')
-#def hello():
-   # return "Awesomeness this is going to be the one."
 
 
-@twitter.tokengetter
-def get_twitter_token():
-    if 'twitter_oauth' in session:
-        resp = session['twitter_oauth']
-        return resp['oauth_token'], resp['oauth_token_secret']
+@app.route('/tweets')
+def tweets():
+
+    url_for('static', filename='map.html')
+    url_for('static', filename='jquery-1.7.2.min.js')
+    url_for('static', filename='jquery.eventsource.js')
+    url_for('static', filename='jquery-1.7.2.js')
+    return Response(event_stream(),
+        headers={'Content-Type':'text/event-stream'})
 
 
-@app.before_request
-def before_request():
-    g.user = None
-    if 'twitter_oauth' in session:
-        g.user = session['twitter_oauth']
-
-
-@app.route('/login')
-def login():
-    callback_url = url_for('oauthorized', next=request.args.get('next'))
-    return twitter.authorize(callback=callback_url or request.referrer or None)
-
-
-@app.route('/logout')
-def logout():
-    session.pop('twitter_oauth', None)
-    return redirect(url_for('base'))
-
-
-@app.route('/oauthorized')
-@twitter.authorized_handler
-def oauthorized(resp):
-    if resp is None:
-        flash('Authentication Error!')
-    else:
-        session['twitter_oauth'] = resp
-    return redirect(url_for('index'))
-
-
-@app.route('/')
-def index():
-    """ Just a generic index page to show."""
-    return render_template('home.html')
-
+def runThread():
+    st = Thread( target = tail_mongo_thread )
+    st.start()
 
 if __name__ == '__main__':
-    app.run()
+    signal.signal(signal.SIGINT, signal_handler)
+    app.before_first_request(runThread)
+    app.run(debug=True, host='0.0.0.0')
