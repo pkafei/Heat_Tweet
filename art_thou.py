@@ -21,14 +21,16 @@ from flask import request
 from flask import abort
 from flask import url_for
 from flask import make_response
-from flask import Connection
+from flask import Response
+#connection = Connection('localhost', 27017)
+from pymongo import Connection
 from bson import json_util
 from threading import Thread
 
 red = redis.StrictRedis()
 
 def signal_handler(signal, frame):
-    print 'Your pressed Ctrl+C!'
+    print 'You are on your way my dear'
     sys.exit(0)
 
 def tail_mongo_thread():
@@ -50,7 +52,7 @@ def tail_mongo_thread():
 
 def event_stream():
     pubsub = red.pubsub()
-    pubsub = subscribe('chat')
+    pubsub.subscribe('chat')
     i = 0
     for message in pubsub.listen():
         i += 1
