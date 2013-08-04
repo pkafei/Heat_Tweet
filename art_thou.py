@@ -20,44 +20,6 @@ from flask import Flask
 from flask import request
 from flask import abort
 from flask import url_for
-from flask import make_response
-from flask import Response
-#connection = Connection('localhost', 27017)
-from pymongo import Connection
-from bson import json_util
-from threading import Thread
-
-red = redis.StrictRedis()
-
-def signal_handler(signal, frame):
-    print 'You are on your way my dear'
-    sys.exit(0)
-
-def tail_mongo_thread():
-    print "beginning to tail..."
-    db = Connection().tstream
-    coll = db.tweets_tail
-    cursor = coll.find({"coordinates.type" : "Point"}, {"coordinates" :1},
-        tailable=True, timeout=False)
-    ci=0
-    while cursor.alive:
-        try:
-            doc = cursor.next()
-            ci += 1
-            red.publish('chat', u'%s'
-                % json.dumps(doc,default=json_util.default))
-        except StopIteration:
-            pass
-
-
-def event_stream():
-    pubsub = red.pubsub()
-    pubsub.subscribe('chat')
-    i = 0
-    for message in pubsub.listen():
-        i += 1
-        print i
-        yield 'data: %s\n\n' % message['data']
 
 app = Flask(__name__)
 
